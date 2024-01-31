@@ -1,0 +1,198 @@
+XAMMP elinditása
+új project létrehozása htdocs-ban: composer create-project laravel/laravel example-app
+átlépni a mappába
+adatbázis létrehozása
+env-be átirni az adatbázis nevét és localhostot
+migráciok léterhozása és a szükségtelenek kitörlése
+
+Migráció:
+create-be('sorozatok')
+$table->id("s_id");
+$table->string("magyar_cim");
+$table->string("eredeti_cim");
+$table->integer("kezdes_ev);
+stb
+timestamps nem kell ha nincs benne
+foreignkey készitése:
+$table->foreignId("s_id")->references("s_id")->("tablenev")->onDelete('cascade');
+!!!SorrendFOntos!!! ami nincs azhoz nem tud kapcsolodni
+
+Aztán megfutatás: php artisan migration --seed(ha kell seeder)
+
+Modelek:
+php artisan make:model Sorozat
+modelbe:
+use HasFactory;
+public $table = "sorozatok";
+public $primary = "s_id";
+public $timestamps = false;
+public $guarded = [];
+
+Seederek:
+php artisan make:seeder SorozatEpisodSeeder
+use App\Models\Sorozat be kell rakni!!!
+Run-ba kell rakni a megadott seedeket.
+a tömb után:
+foreach($sorozatok as $sorozat){
+Sorozat<=(model neve)::create([
+"magyar_cim" => $sorozat['magyar_cim'];
+"eredeto_cim" => $sorozat['eredeti_cim'];
+stb.
+]);
+{
+
+Seederek után DatabaseSeeder-be belekell irni FONTOS!!!
+
+run methodba:
+$this->call([
+SorozatEpizodat::class,
+SorozatEpisodSeeder::class,
+]);
+
+
+Frontend:
+Bootstrap és MasterLayout létrehozása
+Views mappába:
+layouts mappa->master.blade.php
+Abban ! tab
+hu
+Bootstarp 5 cdn headbe.
+titlebe:@yield('title')
+bodyba: @yield('contect')
+rövidités: .container-fluid>.row>.col-12>div.p-3
+
+CSS:
+public mappába->css mappa->style.css
+master blade-ba headbe: <link rel="stylesheet" href="{{asset('css/stly.css')}}">
+
+Welcome blade:
+@extends('layouts.master')
+@section('title','Sorozatok')
+@section('content')
+.container>.row>.col-12.col-md-6*2
+FORM létrehozása
+<div>
+<form method="POST">
+ @csrf
+
+ @if (session()->has('kesz'))
+ .alert.alert-success
+A sorozat felvétele megtörtént
+ @endif
+ <div>
+<label for="magyar_cim">Magyar cím:</label>
+<input type="text" name="magyar_cim" id="magyar_cim" class="form-control" placeholder="" value="{{old('magyar_cim')}}">
+@error('magyar_cim')
+ <div class="alert alert-danger">
+{{$message}}
+</div>
+@enderror
+</div>
+<div>
+<button type="submit" class="btn btn-primary w-100">Sorozat felvétel</button>
+</form>
+</div>
+
+Tábla létrehozása:
+divbe: table>tr*2>td*5
+th-ra átirni az első:
+th #
+th magyar cim stb
+td -be foreach:
+ @foreach ($utlso5Sorozat as $sorozat)
+<td>
+<a href="./sorozatEpizodok/{{{$sorozat->s_id}}}"> <- ez kattintás lehetőség
+{{$sorozat->s_id}} 
+</a>
+</td>
+<td>{{$sorozat->magyar_cim}}</td>
+stb
+@endforeach
+@endsection
+
+VALIDÁLÁS:
+web.php-ben
+use App\Http\Controllers\SorozatController;
+
+Route::get('/',[SorozatController::class,'megjelenit'])->name('fooldal');
+Route::post('/',[SorozatController::class,'sorozatMentes']);
+
+Route::get('/sorozatEpizodok/{sid(ez a táblaneve)}',[SorozatController::class,'epizodLista']);
+
+Controllerbe:
+php artisan make:controller SorozatContoller
+use Illuminate\Suppoert\Facades\Validator;
+use App\Models\Sorozat;
+
+public function megjelenit(){
+	$utolso5Sorozat  = Sorozat::orderBy('s_id','DESC')->take(5)->get();
+	return view("welcome"['utolso5Sorozat'=>$utolso5Sorozat]);
+}
+
+public function sorozatMentes(Request $req){
+	$req->validate(
+[
+ 	"magyar_cim" => "required|max:255",
+	"kezd_y" => "numeric"
+],
+[
+ 	"magyar_cim.required" => "A mező kitöltése kötelező!",
+	"kezd_y => "csak szám lehet
+]
+);
+$sorozat = new Sorozat;
+$sorozat->magyar_cim = $req->input('magyar_cim');
+$sorozat->eredeti_cim = $req->input('eredeti_cim');
+stb végén:
+$sorozat->save();
+
+return redirect()->route('foooldal')->with('kesz','1');
+	A többit a formba.
+}
+
+public function epizodLista($sid){
+$sorozat = Sorozat::find($sid);
+if($sorozat !== NULL){
+$epizodok = Sorozatepizod::where('s_id',$sid)->get();
+return view('epizodlista',['sorozat'=>$sorozat]);
+USEOLNI NE FELETHSUNK FELÜL
+}
+else{
+redirect()-route('fooldal');
+}
+
+Apik a Controllerbe:
+
+public function apiGetSorozat($id){
+ $sorozat = Sorozat::find($id);
+if($sorozat !== NULL){
+ $data['sorozat'][0] = $sorozat;
+ return response()->json($data);
+}
+ else
+{
+ $data['message'] = "Nincs ilyen sorozat";
+ return response()->json($data,400);
+}
+}
+
+public function apiCreate(Request $req){
+ 
+
+}
+
+
+Epizodlistának egy külön blade.
+vissza gomb a href="{{route('fooldal')}}" class="btn-btn primary")Vissza
+h2 {{$sorozat->eredeti_cim}} stb
+
+API végpontok:
+Thudnerclient
+collection fülnél keresö fül mellett mneü: new vizsgafeladat neven ha kséu ezt export
+new request-ek csinálni a kért lekéréseket
+urlba égészlocalhostpublical a végére avizsgalapon sreplőrész
+API létrehozás:
+routes mappa/api.php
+use App\Http\Controller\SorozatController;
+Route::get("/egySorozat/{id}"<-ezmegleszaadva,[SorozatController::class,'apiGetSorozat']);
+Route::post("/sorozatLetrehozas",[SorozatController::class,'apiCreate']);
